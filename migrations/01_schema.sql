@@ -23,15 +23,15 @@ CREATE TABLE
     parking_spaces INTEGER NOT NULL,
     number_of_bathrooms INTEGER NOT NULL,
     number_of_bedrooms INTEGER NOT NULL,
-    thumbnail_url VARCHAR(255) NOT NULL,
-    image_url VARCHAR(255) NOT NULL,
+    thumbnail_photo_url VARCHAR(255) NOT NULL,
+    cover_photo_url VARCHAR(255) NOT NULL,
     country VARCHAR(255) NOT NULL,
     street VARCHAR(255) NOT NULL,
     city VARCHAR(255) NOT NULL,
     province VARCHAR(255) NOT NULL,
     post_code VARCHAR(255) NOT NULL,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    owner_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE
   );
 
 CREATE TABLE
