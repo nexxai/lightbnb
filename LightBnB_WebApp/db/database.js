@@ -120,15 +120,74 @@ LIMIT
  * @return {Promise<[{}]>}  A promise to the properties.
  */
 const getAllProperties = function (options, limit = 10) {
-  return pool
-    .query(`SELECT * FROM properties LIMIT $1`, [limit])
-    .then((result) => {
-      console.log(result.rows);
-      return Promise.resolve(result.rows);
-    })
-    .catch((err) => {
-      console.log(err.message);
+  // 1
+  const queryParams = [];
+  // 2
+  let queryString = `
+  SELECT properties.*, avg(property_reviews.rating) as average_rating
+  FROM properties
+  JOIN property_reviews ON properties.id = property_id`;
+
+  let queryWheres = [];
+  // 3
+  if (options.city) {
+    queryWheres.push([`%${options.city}%`, `city LIKE `]);
+  }
+
+  if (options.owner_id) {
+    queryWheres.push([options.owner_id, `owner_id = `]);
+  }
+
+  if (options.minimum_price_per_night) {
+    queryWheres.push([options.minimum_price_per_night, `cost_per_night >= `]);
+  }
+
+  if (options.maximum_price_per_night) {
+    queryWheres.push([options.maximum_price_per_night, `cost_per_night <= `]);
+  }
+
+  // If even one where clause is specified, let's start building it up
+  if (queryWheres.length > 0) {
+    // Prepend "WHERE" to the beginning of this piece of the queryString
+    queryString += `
+  WHERE `;
+    let whereCounter = 0;
+
+    // Progressively loop through each clause and add them to the statement
+    // being sure to add both the clause itself and the positioning of the variable in the statement
+    queryWheres.forEach((clause) => {
+      queryParams.push(clause[0]);
+      queryString += clause[1] + `$${queryParams.length}`;
+
+      // If there are more than one clause but we're not at the end, add an "AND" between each clause
+      whereCounter++;
+      if (whereCounter < queryWheres.length) {
+        queryString += " AND ";
+      }
     });
+  }
+
+  queryString += `
+  GROUP BY properties.id `;
+
+  if (options.minimum_rating) {
+    queryParams.push(options.minimum_rating);
+    queryString += `
+  HAVING AVG(property_reviews.rating) >= $${queryParams.length} `;
+  }
+
+  // 4
+  queryParams.push(limit);
+  queryString += `
+  ORDER BY cost_per_night
+  LIMIT $${queryParams.length};
+  `;
+
+  // 5
+  console.log(queryString, queryParams);
+
+  // 6
+  return pool.query(queryString, queryParams).then((res) => res.rows);
 };
 
 /**
